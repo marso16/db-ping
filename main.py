@@ -6,9 +6,9 @@ from datetime import datetime, timezone
 
 app = Flask(__name__)
 
-@app.route("/ping")
+@app.route("/")
 def ping():
-    uri = os.getenv("MONGO_URI")
+    uri = os.getenv("MONGODB_URI")
     client = None
     
     try:
