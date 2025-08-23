@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 
 app = Flask(__name__)
 
-# Favicon route
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(
@@ -32,18 +31,17 @@ def ping():
 
         client.admin.command('ping')
         
-        ping_history_collection = db.ping_history
-        
         ping_result = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "status": "success",
             "message": "MongoDB ping successful"
         }
-        
+
+        ping_history_collection = db.ping_history
         ping_history_collection.insert_one(ping_result)
         
         return jsonify(ping_result), 200
-        
+
     except Exception as e:
         if client:
             try:
@@ -61,12 +59,13 @@ def ping():
                     "message": f"Ping failed and could not save history: {e}",
                     "logging_error": str(log_e)
                 }), 500
-        
+
         return jsonify({
             "status": "failure",
             "message": f"Ping failed: {e}"
         }), 500
-        
+
     finally:
         if client:
             client.close()
+
