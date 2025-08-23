@@ -38,7 +38,8 @@ def ping():
         }
 
         ping_history_collection = db.ping_history
-        ping_history_collection.insert_one(ping_result)
+        ping_history_collection.insert_one(ping_result) 
+        ping_result.pop('_id', None)
         
         return jsonify(ping_result), 200
 
@@ -53,6 +54,9 @@ def ping():
                     "message": f"Ping failed: {e}"
                 }
                 ping_history_collection.insert_one(ping_result)
+                
+                ping_result.pop('_id', None)
+
             except Exception as log_e:
                 return jsonify({
                     "status": "failure",
@@ -68,4 +72,3 @@ def ping():
     finally:
         if client:
             client.close()
-
