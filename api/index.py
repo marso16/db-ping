@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, jsonify
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 import os
@@ -21,7 +21,10 @@ def ping():
     client = None
     
     if not uri:
-        return "❌ MONGODB_URI environment variable not set.", 500
+        return jsonify({
+            "status": "failure",
+            "message": "MONGODB_URI environment variable not set."
+        }), 500
 
     try:
         client = MongoClient(uri, serverSelectionTimeoutMS=5000, server_api=ServerApi('1'))
@@ -32,14 +35,14 @@ def ping():
         ping_history_collection = db.ping_history
         
         ping_result = {
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "status": "success",
             "message": "MongoDB ping successful"
         }
         
         ping_history_collection.insert_one(ping_result)
         
-        return "✅ MongoDB ping successful and history saved!", 200
+        return jsonify(ping_result), 200
         
     except Exception as e:
         if client:
@@ -47,15 +50,22 @@ def ping():
                 db = client.test
                 ping_history_collection = db.ping_history
                 ping_result = {
-                    "timestamp": datetime.now(timezone.utc),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "status": "failure",
                     "message": f"Ping failed: {e}"
                 }
                 ping_history_collection.insert_one(ping_result)
             except Exception as log_e:
-                return f"❌ Ping failed and could not save history: {e}, Logging failed: {log_e}", 500
+                return jsonify({
+                    "status": "failure",
+                    "message": f"Ping failed and could not save history: {e}",
+                    "logging_error": str(log_e)
+                }), 500
         
-        return f"❌ Ping failed: {e}", 500
+        return jsonify({
+            "status": "failure",
+            "message": f"Ping failed: {e}"
+        }), 500
         
     finally:
         if client:
