@@ -1,4 +1,3 @@
-import ssl
 from flask import Flask, jsonify, send_from_directory
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
@@ -19,19 +18,20 @@ def favicon():
 
 @app.route("/")
 def ping():
-    uri = "mongodb+srv://marcelino:311976Lh*C@cluster0.zt9d44u.mongodb.net/?appName=Cluster0"
+    # Force TLS 1.2+ via connection string and certifi CA
+    uri = (
+        "mongodb+srv://marcelino:311976Lh*C@cluster0.zt9d44u.mongodb.net/"
+        "?appName=Cluster0"
+        "&tls=true"
+        "&tlsAllowInvalidCertificates=false"
+        f"&tlsCAFile={certifi.where()}"
+    )
 
     try:
-        ssl_context = ssl.create_default_context(cafile=certifi.where())
-        ssl_context.options |= ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1 
-
         client = MongoClient(
             uri,
             serverSelectionTimeoutMS=5000,
-            server_api=ServerApi("1"),
-            tls=True,
-            tlsCAFile=certifi.where(),
-            ssl=ssl_context
+            server_api=ServerApi("1")
         )
 
         client.admin.command("ping")
