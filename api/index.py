@@ -1,32 +1,41 @@
-from flask import Flask, jsonify
+import ssl
+from flask import Flask, jsonify, send_from_directory
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 from datetime import datetime, timezone
 import certifi
-import ssl
 import os
 
 app = Flask(__name__)
+
+# Serve favicon
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(
+        os.path.join(app.root_path, "static"),
+        "favicon.ico",
+        mimetype="image/vnd.microsoft.icon"
+    )
 
 @app.route("/")
 def ping():
     uri = "mongodb+srv://marcelino:311976Lh*C@cluster0.zt9d44u.mongodb.net/?appName=Cluster0"
 
     try:
-        # Force TLS 1.2 and use certifi CA bundle
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        ssl_context.options |= ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1 
+
         client = MongoClient(
             uri,
             serverSelectionTimeoutMS=5000,
             server_api=ServerApi("1"),
             tls=True,
             tlsCAFile=certifi.where(),
-            tlsVersion=ssl.TLSVersion.TLSv1_2
+            ssl=ssl_context
         )
 
-        # Ping the database
         client.admin.command("ping")
 
-        # Record result (optional: insert into DB if you want)
         ping_result = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "status": "success",
@@ -36,14 +45,12 @@ def ping():
         return jsonify(ping_result), 200
 
     except Exception as e:
-        # Log failure locally (safer than logging to MongoDB if connection failed)
         print(f"MongoDB ping failed: {e}")
-        ping_result = {
+        return jsonify({
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "status": "failure",
             "message": f"Ping failed: {e}"
-        }
-        return jsonify(ping_result), 500
+        }), 500
 
     finally:
         if "client" in locals():
