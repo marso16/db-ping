@@ -7,7 +7,6 @@ import os
 
 app = Flask(__name__)
 
-# Serve favicon
 @app.route("/favicon.ico")
 def favicon():
     return send_from_directory(
@@ -18,7 +17,6 @@ def favicon():
 
 @app.route("/")
 def ping():
-    # Force TLS 1.2+ via connection string and certifi CA
     uri = (
         "mongodb+srv://marcelino:311976Lh*C@cluster0.zt9d44u.mongodb.net/"
         "?appName=Cluster0"
@@ -27,29 +25,44 @@ def ping():
         f"&tlsCAFile={certifi.where()}"
     )
 
+    if not uri:
+        return jsonify({
+            "status": "failure",
+            "message": "MONGO_URI environment variable not set"
+        }), 500
+
     try:
         client = MongoClient(
             uri,
             serverSelectionTimeoutMS=5000,
-            server_api=ServerApi("1")
+            server_api=ServerApi("1"),
+            tls=True,
+            tlsCAFile=certifi.where()
         )
-
         client.admin.command("ping")
+        db = client["test"]
+        collection = db["ping_history"]
 
         ping_result = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "status": "success",
-            "message": "MongoDB ping successful"
+            "status": "success"
         }
 
-        return jsonify(ping_result), 200
+        collection.insert_one(ping_result)
+
+        return jsonify({
+            "timestamp": ping_result["timestamp"],
+            "status": "success",
+            "message": "MongoDB ping successful and logged"
+        }), 200
 
     except Exception as e:
-        print(f"MongoDB ping failed: {e}")
+        print("MongoDB error:", e)
+
         return jsonify({
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "status": "failure",
-            "message": f"Ping failed: {e}"
+            "message": str(e)
         }), 500
 
     finally:
