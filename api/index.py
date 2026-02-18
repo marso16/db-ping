@@ -1,8 +1,8 @@
 from flask import Flask, send_from_directory, jsonify
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
-import os
 from datetime import datetime, timezone
+import os
 
 app = Flask(__name__)
 
@@ -16,14 +16,8 @@ def favicon():
 
 @app.route("/")
 def ping():
-    uri = os.getenv("MONGODB_URI")
+    uri = "mongodb+srv://marcelino:311976Lh*C@cluster0.zt9d44u.mongodb.net/?appName=Cluster0"
     client = None
-    
-    if not uri:
-        return jsonify({
-            "status": "failure",
-            "message": "MONGODB_URI environment variable not set."
-        }), 500
 
     try:
         client = MongoClient(uri, serverSelectionTimeoutMS=5000, server_api=ServerApi('1'))
